@@ -145,7 +145,7 @@ enum Options {
 };
 int main() {
 	//float VERSION = 0.5;
-    std::cout << std::format("HMcoder {}\n", Config::VERSION) << std::endl;
+    std::cout << std::format("HMcoder {}\n", VERSION_STR) << std::endl;
     
     //std::wcout << "HMcoder {}\n" << Config::VERSION << std::endl;
     
