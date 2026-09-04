@@ -7,7 +7,7 @@ execute_process(
     OUTPUT_STRIP_TRAILING_WHITESPACE
 )
 
-add_compile_definitions(VERSION_STR="${GIT_VERSION}")
+add_compile_definitions(VERSION_STR=L"${GIT_VERSION}")
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)

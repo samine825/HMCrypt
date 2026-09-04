@@ -7,10 +7,7 @@
 #include <format>
 #include <cstdint>
 #include <string_view>
-
-namespace Config {
-    constexpr std::string_view VERSION = "1.0.2";
-}
+#include <clocale>
 
 
 // РАНДОМ
@@ -74,20 +71,34 @@ std::wstring randomize_alphabet(u64 &seed, std::wstring &abc) {
 	std::wstring result(arr.begin(), arr.end());
 	return result;
 }
-std::vector<std::wstring> generate_alphabets(u64 *seeds, int &lenseeds, std::wstring abc, int &lenabc) {
+std::vector<std::wstring> generate_alphabets(std::vector<u64> seeds, int &lenseeds, std::wstring abc, int &lenabc) {
 	std::vector<std::wstring> abcs(lenseeds);
     for (int i = 0; i<lenseeds; i++) {
     	abcs[i] = randomize_alphabet(seeds[i], abc);
-    	std::wcout << randomize_alphabet(seeds[i], abc) << std::endl;
+    	//std::wcout << randomize_alphabet(seeds[i], abc) << std::endl;
     }
     return abcs;
 }
 
 
+
 // запросы ввода
 std::vector<std::wstring> seeds_req() {
-	u64 seeds[] = {714, 825, 285};
-	int lenseeds = 3;
+	std::wstring raw_seeds;
+	std::wcout << L"enter seeds: ";
+	std::wcin.ignore();
+	std::getline(std::wcin, raw_seeds);
+	
+	std::vector<u64> seeds;
+    
+    std::wstringstream ss(raw_seeds);
+    u64 temporary_seed;
+    
+    while (ss >> temporary_seed) {
+        seeds.push_back(temporary_seed);
+    }
+
+	int lenseeds = seeds.size();
 	
 	std::wstring mainabc = L"\nabcdefghijklmnopqrstuvwxyzабвгдежзийклмнопрстуфхцчшщьыъэюя1234567890 !?,.-äüöß<>()'\\/\"*:;[]#€₽@_~=";
 	int lenmainabc = mainabc.size();
@@ -96,16 +107,13 @@ std::vector<std::wstring> seeds_req() {
 	return abcs;
 }
 std::wstring text_req() {
-	return L"<3";
+    std::wstring text;
+    std::wcout << L"enter text: ";
+	//std::wcin.ignore();
+    std::getline(std::wcin, text);
+    return text;
 }
 
-
-//вспомогательное
-std::wstring pad2(int number) {
-    std::wstringstream wss;
-    wss << std::setfill(L'0') << std::setw(2) << number;    
-    return wss.str();
-}
 
 
 //кодеры
@@ -115,12 +123,11 @@ std::wstring encode() {
 	
 	std::vector<wchar_t> arr(text.begin(), text.end());
 	std::wstring result = L"";
-	for (int i = 0; i<arr.size(); i++) {
-		result += pad2(abcs[i % abcs.size()].find(arr[i]));
+	for (size_t i = 0; i<arr.size(); i++) {
+		result += std::format(L"{:02}", abcs[i % abcs.size()].find(arr[i]));
     }
     return result;
 }
-
 std::wstring decode() {
 	std::vector<std::wstring> abcs = seeds_req();
 	std::wstring text = text_req();
@@ -128,7 +135,7 @@ std::wstring decode() {
 	std::vector<wchar_t> arr(text.begin(), text.end());
 	std::wstring result = L"";
 	std::wstring buffer = L"";
-	for (int i = 0; i<arr.size(); i++) {
+	for (size_t i = 0; i<arr.size(); i++) {
 		buffer += text[i];
 		if (i%2) {
 			result += abcs[(i/2) % abcs.size()][std::stoi(buffer)];
@@ -138,40 +145,41 @@ std::wstring decode() {
     return result;
 }
 
+
+
 enum Options {
 	OptEncode,
 	OptDecode,
 	OptExit
 };
+
 int main() {
-	//float VERSION = 0.5;
-    std::cout << std::format("HMcoder {}\n", VERSION_STR) << std::endl;
-    
-    //std::wcout << "HMcoder {}\n" << Config::VERSION << std::endl;
-    
+	std::setlocale(LC_ALL, "");
+    std::wcout << std::format(L"HMcrypt {}\n", VERSION_STR) << std::endl;
+
     // основной цикл
     bool running = true; 
     while (running) {
 	    int selected_option;
-	    std::cout << "0. encode text\n1. decode text\n2. exit" << std::endl;
-	    std::cout << "option: ";
-	    std::cin >> selected_option;
+	    std::wcout << L"0. encode text\n1. decode text\n2. exit" << std::endl;
+	    std::wcout << L"option: ";
+	    std::wcin >> selected_option;
 	    switch (selected_option) {
 	    	case Options::OptEncode: {
 	            std::wstring encoded = encode();
-	            std::wcout << "encoded text: " << encoded << std::endl;
+	            std::wcout << L"encoded text: " << encoded << std::endl;
 	            break;
 	        }
 	    	case Options::OptDecode: {
 	            std::wstring decoded = decode();
-	            std::wcout << "decoded text: " << decoded << std::endl;
+	            std::wcout << L"decoded text: " << decoded << std::endl;
 	            break;
 	        }
 	        case Options::OptExit:
             	running = false;
 	            break;
 	        default:
-	            std::cout << "invalid option" << std::endl;
+	            std::wcout << L"invalid option" << std::endl;
 	            break;
 	    }
     }
