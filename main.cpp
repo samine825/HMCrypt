@@ -150,20 +150,43 @@ std::wstring decode() {
 enum Options {
 	OptEncode,
 	OptDecode,
+	OptGenCrt,
 	OptExit
 };
 
-int main() {
+int main(int argc, char* argv[]) {
 	std::setlocale(LC_ALL, "");
-    std::wcout << std::format(L"HMcrypt {}\n", VERSION_STR) << std::endl;
-
+    std::wcout << std::format(L"HMcrypt {}\n", VERSION_STR/*при сборке, симейк ставит эту переменную*/) << std::endl;
+    
+    
+    std::string arg1 = argv[1]; 
+    //std::string arg1 = argv[1]; 
+    //std::string arg1 = argv[1]; 
+    
+    int selected_option = -1;
+    if (arg1 == "encode") {
+    	selected_option = Options::OptEncode;
+    }
+    else if (arg1 == "decode") {
+    	selected_option = Options::OptDecode;
+    }
+    else if (arg1 == "gencrt") {
+    	selected_option = Options::OptGenCrt;
+    } else {
+    	selected_option = Options::OptExit;
+    }
+    
+    
+    
+    
     // основной цикл
     bool running = true; 
     while (running) {
-	    int selected_option;
-	    std::wcout << L"0. encode text\n1. decode text\n2. exit" << std::endl;
-	    std::wcout << L"option: ";
-	    std::wcin >> selected_option;
+	    if (selected_option == -1) {
+		    std::wcout << L"0. encode text\n1. decode text\n2. generate certificate\n3. exit" << std::endl;
+	        std::wcout << L"option: ";
+	        std::wcin >> selected_option;
+	    }
 	    switch (selected_option) {
 	    	case Options::OptEncode: {
 	            std::wstring encoded = encode();
@@ -179,6 +202,7 @@ int main() {
             	running = false;
 	            break;
 	        default:
+            	running = false;
 	            std::wcout << L"invalid option" << std::endl;
 	            break;
 	    }
