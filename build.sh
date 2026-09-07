@@ -50,6 +50,7 @@ echo -e "${F_BOLD}𐅡 упаковка .pkg.tar.zst${C_MAIN}"
 tar -cv --zstd -f hmcrypt-release.pkg.tar.zst -C "$pkg_root" .PKGINFO usr
 
 cd ..
+ln -s build/compile_commands.json compile_commands.json
 rm -rf "$pkg_root"
 
 echo -e "${F_BOLD}𐅡 --- сборка завершена ---${C_MAIN}"

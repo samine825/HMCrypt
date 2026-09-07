@@ -3,11 +3,10 @@
 #include <cstring>
 #include <sstream>
 #include <vector>
-#include <iomanip>
 #include <format>
-#include <cstdint>
 #include <string_view>
 #include <clocale>
+#include <filesystem>
 
 
 // РАНДОМ
@@ -71,7 +70,11 @@ std::wstring randomize_alphabet(u64 &seed, std::wstring &abc) {
 	std::wstring result(arr.begin(), arr.end());
 	return result;
 }
-std::vector<std::wstring> generate_alphabets(std::vector<u64> seeds, int &lenseeds, std::wstring abc, int &lenabc) {
+std::vector<std::wstring> generate_alphabets(std::vector<u64> seeds) {
+    int lenseeds = seeds.size();
+	
+	std::wstring abc = L"\nabcdefghijklmnopqrstuvwxyzабвгдежзийклмнопрстуфхцчшщьыъэюя1234567890 !?,.-äüöß<>()'\\/\"*:;[]#€₽@_~=";
+
 	std::vector<std::wstring> abcs(lenseeds);
     for (int i = 0; i<lenseeds; i++) {
     	abcs[i] = randomize_alphabet(seeds[i], abc);
@@ -83,7 +86,7 @@ std::vector<std::wstring> generate_alphabets(std::vector<u64> seeds, int &lensee
 
 
 // запросы ввода
-std::vector<std::wstring> seeds_req() {
+std::vector<u64> seeds_req() {
 	std::wstring raw_seeds;
 	std::wcout << L"enter seeds: ";
 	std::getline(std::wcin, raw_seeds);
@@ -97,13 +100,7 @@ std::vector<std::wstring> seeds_req() {
         seeds.push_back(temporary_seed);
     }
 
-	int lenseeds = seeds.size();
-	
-	std::wstring mainabc = L"\nabcdefghijklmnopqrstuvwxyzабвгдежзийклмнопрстуфхцчшщьыъэюя1234567890 !?,.-äüöß<>()'\\/\"*:;[]#€₽@_~=";
-	int lenmainabc = mainabc.size();
-	
-	std::vector<std::wstring> abcs = generate_alphabets(seeds, lenseeds, mainabc, lenmainabc);
-	return abcs;
+	return seeds;
 }
 std::wstring text_req() {
     std::wstring text;
@@ -131,7 +128,7 @@ std::wstring decode(std::wstring text,std::vector<std::wstring> abcs) {
 	for (size_t i = 0; i<arr.size(); i++) {
 		buffer += text[i];
 		if (i%2) {
-			result += abcs[(i/2) % abcs.size()][std::stoi(buffer)];
+			result += abcs[(i/2) % abcs.size()][std::stoul(buffer)];
 			buffer = L"";
         }
     }
@@ -155,10 +152,37 @@ enum Options {
 };
 
 int main(int argc, char* argv[]) {
+    #ifndef VERSION_STR
+    #define VERSION_STR "dev (unversioned build)"
+    #endif
+
 	std::setlocale(LC_ALL, "");
     std::wcout << std::format(L"HMcrypt {}\n", VERSION_STR/*при сборке, симейк ставит эту переменную*/) << std::endl;
     
+
+    std::vector<std::wstring> wargs;
+
+    // Конвертируем каждый аргумент через std::filesystem::path
+    for (int i = 1; i < argc; ++i) {
+        wargs.push_back(std::filesystem::path(argv[i]).wstring());
+    }
+
     int selected_option = -1;
+
+    std::string_view seed_arg = "--seed";
+    std::string_view crt_arg = "--crt";
+    std::string_view text_arg = "--text";
+    std::string_view input_arg = "--input";
+    std::string_view output_arg = "--output";
+    std::string_view count_arg = "--count";
+
+    int check_seed = check(argc, argv, seed_arg);
+    int check_crt = check(argc, argv, crt_arg);
+    int check_text = check(argc, argv, text_arg);
+    int check_input = check(argc, argv, input_arg);
+    int check_output = check(argc, argv, output_arg);
+    int check_count = check(argc, argv, count_arg);
+
     try {
         // проверка на аргумент режима
         if (argc > 1) {
@@ -180,19 +204,7 @@ int main(int argc, char* argv[]) {
                 throw std::invalid_argument("invalid first argument"); 
             }
         
-            std::string_view seed = "--seed";
-            std::string_view crt = "--crt";
-            std::string_view text = "--text";
-            std::string_view input = "--input";
-            std::string_view output = "--output";
-            std::string_view count = "--count";
 
-            int check_seed = check(argc, argv, seed);
-            int check_crt = check(argc, argv, crt);
-            int check_text = check(argc, argv, text);
-            int check_input = check(argc, argv, input);
-            int check_output = check(argc, argv, output);
-            int check_count = check(argc, argv, count);
 
             if ((check_seed && check_crt) || (check_text && check_input) || (arg1 == "gencrt" && (check_crt || check_text || check_seed || check_input)) || ((arg1 == "decode" || arg1 == "encode") && check_count)) {
                 throw std::invalid_argument("invalid arguments"); 
@@ -221,13 +233,7 @@ int main(int argc, char* argv[]) {
                 // cli ввод текста
             }
 
-            // вывод (для всех режимов)
-            if (check_output) {
-                // вывод в файл
-            }
-            else {
-                // вывод к консоль
-            }
+            
 
 
             if (check_count) {
@@ -253,19 +259,115 @@ int main(int argc, char* argv[]) {
             }
             switch (selected_option) {
                 case Options::OptEncode: {
-                    std::vector<std::wstring> abcs = seeds_req();
-                    std::wstring text = text_req();
+                    // получение сидов
+                    std::vector<u64> seeds;
+                    if (check_crt) {
+                        std::wstring crt_path = wargs[check_crt];
+                        std::wcout << L"типо открытие файла сертификата" << std::endl;
+                        seeds = {714, 825, 285};
+                        // seeds = read_file(crt_path) -- псевдокод
+                    }
+                    else if (check_seed) {
+                        std::wstringstream ss(wargs[check_seed]);
+                        u64 temporary_seed;
+
+                        while (ss >> temporary_seed) {
+                            seeds.push_back(temporary_seed);
+                        }
+                    }
+                    else {
+                        seeds = seeds_req();
+                    }
+
+                    // генерация алфавитов на основе сидов
+                    std::vector<std::wstring> abcs = generate_alphabets(seeds);
+
+                    // получение текста
+                    std::wstring text;
+                    if (check_input) {
+                        std::wstring input_path = wargs[check_input];
+                        std::wcout << L"типо открытие файла инпута" << std::endl;
+                        text = L"вирко";
+                        // text = read_file_bytes(input_path) -- псевдокод
+                    }
+                    else if (check_text) {
+                        text = wargs[check_text];
+                    }
+                    else {
+                        text = text_req();
+                    }
+
+                    // кодирование текста
                     std::wstring encoded = encode(text, abcs);
-                    std::wcout << L"encoded text: " << encoded << std::endl;
+
+                    // вывод
+                    if (check_output) {
+                        std::wstring output_path = wargs[check_text];
+                        std::wcout << L"типо запись файла" << std::endl;
+                        // write(encoded, output_path) -- псевдокод
+                    }
+                    else {
+                        std::wcout << encoded << std::endl;
+                    }
                     break;
                 }
                 case Options::OptDecode: {
-                    std::vector<std::wstring> abcs = seeds_req();
-                    std::wstring text = text_req();
+                    // получение сидов
+                    std::vector<u64> seeds;
+                    if (check_crt) {
+                        std::wstring crt_path = wargs[check_crt];
+                        std::wcout << L"типо открытие файла сертификата" << std::endl;
+                        seeds = {714, 825, 285};
+                        // seeds = read_file(crt_path) -- псевдокод
+                    }
+                    else if (check_seed) {
+                        std::wstringstream ss(wargs[check_seed]);
+                        u64 temporary_seed;
+
+                        while (ss >> temporary_seed) {
+                            seeds.push_back(temporary_seed);
+                        }
+                    }
+                    else {
+                        seeds = seeds_req();
+                    }
+
+                    // генерация алфавитов на основе сидов
+                    std::vector<std::wstring> abcs = generate_alphabets(seeds);
+
+                    // получение текста
+                    std::wstring text;
+                    if (check_input) {
+                        std::wstring input_path = wargs[check_input];
+                        std::wcout << L"типо открытие файла инпута" << std::endl;
+                        text = L"вирко";
+                        // text = read_file(input_path) -- псевдокод
+                    }
+                    else if (check_text) {
+                        text = wargs[check_text];
+                    }
+                    else {
+                        text = text_req();
+                    }
+
+                    // декодирование текста
                     std::wstring decoded = decode(text, abcs);
-                    std::wcout << L"decoded text: " << decoded << std::endl;
+
+                    // вывод
+                    if (check_output) {
+                        std::wstring output_path = wargs[check_text];
+                        std::wcout << L"типо запись файла" << std::endl;
+                        // write_bytes(encoded, output_path) -- псевдокод
+                    }
+                    else {
+                        std::wcout << decoded << std::endl;
+                    }
                     break;
                 }
+                case Options::OptGenCrt:
+                    std::wcout << L"not implemented" << std::endl;
+                    running = false;
+                    break;
                 case Options::OptExit:
                     running = false;
                     break;
@@ -288,26 +390,8 @@ TODO: сделать обработку нечетных вводов (деко�
 сделать обработку неизвестных символов (енкод)
 сделать обработку неизвестных номеров (декод)
 
-сделать аргументы
+доделать аргументы
 
-        hmcrypt -------- cli mode
-		   |
-   ----------------------------
-encode  encode              gencrt
-   --------                   |
-      |
-   ---------
-  seed    crt
-   |       |
-"123 12" "f.825crt"
-   ---------
-      |                       |
-   ------------------         |
- text   textfile   file   "f.825crt"
-   |      |         |         |
- "abc"  "f.txt"   "f.any"    1000
-   ||      ||         |       |
- "f.txt" "f.txt"  "f.825"    1000
 
 
 
