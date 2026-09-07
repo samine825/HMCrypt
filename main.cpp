@@ -7,7 +7,8 @@
 #include <string_view>
 #include <clocale>
 #include <filesystem>
-
+#include <fstream>
+#include <filesystem>
 
 // РАНДОМ
 using u64 = unsigned long long;
@@ -59,8 +60,23 @@ void shuffle_wchar(u64& seed_ref, std::vector<wchar_t>& items) {
 
 
 
-
-
+int write_file(std::wstring data, std::wstring path) {
+    std::wofstream file(std::filesystem::path{path}); 
+    if (!file) {
+        return 1;
+    }
+    file << data;
+    return 0;
+}
+std::wstring read_file(std::wstring path) {
+    std::wifstream file(std::filesystem::path{path}); 
+    if (!file) {
+        return L"";
+    }
+    std::wstringstream buffer;
+    buffer << file.rdbuf();
+    return buffer.str();
+}
 
 
 //работа с генерируемыми алфавитами
