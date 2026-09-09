@@ -59,24 +59,31 @@ class Random {
 #include <fstream>
 class FileAccess {
     private: 
-        // инкапсууляция по ооп
+        // инкапсуляция по ооп
         std::wstring path;
         std::wfstream file;
 
     public:
-        // конструктор
-        //FileAccess(std::wstring hPath) {
-        //    path = hPath;
-        //}
+        enum OpenMode {
+            Read,
+            Write,
+            ReadBin,
+            WriteBin
+        };
         // деструктор
         ~FileAccess() {
             close();
         }
 
-        int open(std::wstring hPath) {
+        int open(std::wstring hPath, OpenMode mode) {
             path = hPath;
-            file.open(std::filesystem::path(path), std::ios::in | std::ios::out | std::ios::trunc);
-            if (!file) {
+            file.open(std::filesystem::path(path), 
+                (OpenMode::Read == mode) ? std::ios::in : 
+                (OpenMode::Write == mode) ? std::ios::out | std::ios::trunc :
+                (OpenMode::ReadBin == mode) ? std::ios::in | std::ios::binary :
+                std::ios::out | std::ios::binary | std::ios::trunc
+            );
+            if (!file.is_open()) {
                 return 1;
             }
             return 0;
@@ -121,7 +128,6 @@ class Coder {
             std::vector<std::wstring> abcs(lenseeds);
             for (int i = 0; i<lenseeds; i++) {
                 abcs[i] = randomize_alphabet(seeds[i], abc);
-                //std::wcout << randomize_alphabet(seeds[i], abc) << std::endl;
             }
             return abcs;
         }
@@ -200,9 +206,7 @@ int main(int argc, char* argv[]) {
 	std::setlocale(LC_ALL, "");
     std::wcout << std::format(L"HMcrypt {}\n", VERSION_STR/*при сборке, симейк ставит эту переменную*/) << std::endl;
     
-    FileAccess file;
-    file.open(L"/home/samine/Downloads/test.txt");
-    file.write(L"hzhzhz");
+    
 
     std::vector<std::wstring> wargs;
 
@@ -305,6 +309,8 @@ int main(int argc, char* argv[]) {
 
 
             if (selected_option == Options::OptEncode || selected_option == Options::OptDecode) {
+                FileAccess file;
+                
                 // получение сидов
                 std::vector<u64> seeds;
                 if (check_crt) {
@@ -328,9 +334,13 @@ int main(int argc, char* argv[]) {
                 std::wstring text;
                 if (check_input) {
                     std::wstring input_path = wargs[check_input];
-                    std::wcout << L"типо открытие файла инпута" << std::endl;
+                    std::wcout << L"открытие файла инпута: " << input_path << std::endl;
                     text = L"вирко";
-                    // text = read_file_bytes(input_path) -- псевдокод
+                    
+                    file.open(input_path, FileAccess::OpenMode::Read);
+                    text = (selected_option == Options::OptEncode) ? file.read() : file.read();
+                    //                                             ^ bytes
+                    file.close();
                 }
                 else if (check_text) {
                     text = wargs[check_text];
@@ -345,9 +355,13 @@ int main(int argc, char* argv[]) {
 
                 // вывод
                 if (check_output) {
-                    std::wstring output_path = wargs[check_text];
-                    std::wcout << L"типо запись файла" << std::endl;
-                    // write(result, output_path) -- псевдокод
+                    std::wstring output_path = wargs[check_output];
+                    std::wcout << L"запись файла: " << output_path << std::endl;
+
+                    file.open(output_path, FileAccess::OpenMode::Write);
+                    (selected_option == Options::OptEncode) ? file.write(result) : file.write(result);
+                    //                                                                        ^ bytes
+                    file.close();
                 }
                 else {
                     std::wcout << result << std::endl;
