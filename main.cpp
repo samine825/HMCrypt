@@ -6,9 +6,8 @@
 #include <format>
 #include <string_view>
 #include <clocale>
-#include <filesystem>
-#include <fstream>
-#include <filesystem>
+
+
 
 // РАНДОМ
 using u64 = unsigned long long;
@@ -57,26 +56,46 @@ void shuffle_wchar(u64& seed_ref, std::vector<wchar_t>& items) {
     }
 }
 
+#include <filesystem>
+#include <fstream>
+class FileAccess {
+    private: 
+        // инкапсууляция по ооп
+        std::wstring path;
+        std::wfstream file;
+
+    public:
+        // конструктор
+        FileAccess(std::wstring hPath) {
+            path = hPath;
+        }
+        // деструктор
+        ~FileAccess() {
+            close();
+        }
+
+        int open() {
+            file.open(std::filesystem::path(path), std::ios::in | std::ios::out | std::ios::trunc);
+            if (!file) {
+                return 1;
+            }
+            return 0;
+        }
+        void close() {
+            file.close();
+        }
+        void write(std::wstring data) {
+            file << data;
+            file.flush(); 
+        }
+        std::wstring read() {
+            std::wstringstream buffer;
+            buffer << file.rdbuf();
+            return buffer.str();
+        }
+};
 
 
-
-int write_file(std::wstring data, std::wstring path) {
-    std::wofstream file(std::filesystem::path{path}); 
-    if (!file) {
-        return 1;
-    }
-    file << data;
-    return 0;
-}
-std::wstring read_file(std::wstring path) {
-    std::wifstream file(std::filesystem::path{path}); 
-    if (!file) {
-        return L"";
-    }
-    std::wstringstream buffer;
-    buffer << file.rdbuf();
-    return buffer.str();
-}
 
 
 //работа с генерируемыми алфавитами
@@ -168,6 +187,7 @@ enum Options {
 };
 
 int main(int argc, char* argv[]) {
+
     #ifndef VERSION_STR
     #define VERSION_STR "dev (unversioned build)"
     #endif
@@ -175,6 +195,9 @@ int main(int argc, char* argv[]) {
 	std::setlocale(LC_ALL, "");
     std::wcout << std::format(L"HMcrypt {}\n", VERSION_STR/*при сборке, симейк ставит эту переменную*/) << std::endl;
     
+    FileAccess file(L"/home/samine/Downloads/test.txt");
+    file.open();
+    file.write(L"hzhzhz");
 
     std::vector<std::wstring> wargs;
 
